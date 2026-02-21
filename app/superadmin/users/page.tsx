@@ -141,7 +141,7 @@ export default function UsersPage() {
         }
 
         try {
-            const payload: any = {
+            const payload: Record<string, string> = {
                 name: formData.name,
                 email: formData.email,
                 role: formData.role,

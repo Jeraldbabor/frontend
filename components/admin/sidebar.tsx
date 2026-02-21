@@ -14,7 +14,6 @@ import {
     X,
     ShieldCheck,
     ChevronsUpDown,
-    Building,
 } from "lucide-react";
 
 /**
