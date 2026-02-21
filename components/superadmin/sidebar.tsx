@@ -14,6 +14,7 @@ import {
     X,
     ShieldCheck,
     ChevronsUpDown,
+    Building,
 } from "lucide-react";
 
 /**
@@ -72,12 +73,17 @@ export default function Sidebar({ user }: SidebarProps) {
     const navItems: NavItem[] = [
         {
             label: "Dashboard",
-            href: "/admin/dashboard",
+            href: "/superadmin/dashboard",
             icon: <LayoutDashboard className="h-5 w-5" />,
         },
         {
+            label: "Universities",
+            href: "/superadmin/universities",
+            icon: <Building className="h-5 w-5" />,
+        },
+        {
             label: "Users",
-            href: "/admin/users",
+            href: "/superadmin/users",
             icon: <Users className="h-5 w-5" />,
         },
     ];
@@ -147,10 +153,10 @@ export default function Sidebar({ user }: SidebarProps) {
                     <div className="absolute bottom-full left-3 right-3 mb-2 rounded-lg border border-border bg-card p-1 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
                         <button
                             onClick={() => {
-                                navigateTo("/admin/settings");
+                                navigateTo("/superadmin/settings");
                                 setDropUpOpen(false);
                             }}
-                            className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${isActive("/admin/settings")
+                            className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${isActive("/superadmin/settings")
                                 ? "bg-primary/10 text-primary"
                                 : "text-muted-foreground hover:bg-accent hover:text-foreground"
                                 }`}

@@ -58,8 +58,20 @@ export default function LoginPage() {
             // Step 3: Also store in a cookie so Next.js middleware can read it
             document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`; // 7 days
 
-            // Step 4: Redirect to the dashboard
-            router.push("/dashboard");
+            // Step 4: Fetch user profile to determine role
+            // We can hit the standard /admin/me endpoint since it returns the user model regardless
+            const meResponse = await api.get("/admin/me", {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            // Step 5: Redirect based on role
+            if (meResponse.data.user.role === "superadmin") {
+                router.push("/superadmin/dashboard");
+            } else {
+                router.push("/admin/dashboard");
+            }
         } catch (err: unknown) {
             // Handle validation or auth errors from the backend
             if (

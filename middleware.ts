@@ -17,15 +17,16 @@ export function middleware(request: NextRequest) {
     const token = request.cookies.get("token")?.value;
     const { pathname } = request.nextUrl;
 
-    // Protect admin routes: redirect to /potal-campuseye3x101 if no token
-    if ((pathname.startsWith("/dashboard") || pathname.startsWith("/settings")) && !token) {
+    // Protect admin and superadmin routes: redirect to /potal-campuseye3x101 if no token
+    if ((pathname.startsWith("/admin") || pathname.startsWith("/superadmin")) && !token) {
         const loginUrl = new URL("/potal-campuseye3x101", request.url);
         return NextResponse.redirect(loginUrl);
     }
 
-    // If user is logged in and visits the login page, redirect to /dashboard
+    // If user is logged in and visits the login page, redirect to /admin/dashboard
+    // (If they are a superadmin, the admin layout will automatically bounce them to /superadmin/dashboard)
     if (pathname === "/potal-campuseye3x101" && token) {
-        const dashboardUrl = new URL("/dashboard", request.url);
+        const dashboardUrl = new URL("/admin/dashboard", request.url);
         return NextResponse.redirect(dashboardUrl);
     }
 
@@ -34,5 +35,5 @@ export function middleware(request: NextRequest) {
 
 // Configure which routes this middleware applies to
 export const config = {
-    matcher: ["/dashboard/:path*", "/settings/:path*", "/potal-campuseye3x101"],
+    matcher: ["/admin/:path*", "/superadmin/:path*", "/potal-campuseye3x101"],
 };
