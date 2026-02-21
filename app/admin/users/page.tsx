@@ -6,6 +6,11 @@ import api from "@/lib/api";
 // lucide-react icons
 import { Users, Plus, Pencil, Trash2, Search, X } from "lucide-react";
 
+// sonner for toast notifications
+import { toast } from "sonner";
+
+import { DeleteModal } from "@/components/admin/delete-modal";
+
 // shadcn/ui components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,8 +27,13 @@ interface User {
     id: number;
     name: string;
     email: string;
-    role: "admin" | "parent" | "student";
+    role: "superadmin" | "admin" | "parent" | "student";
     created_at: string;
+    university_id?: number | null;
+    university?: {
+        id: number;
+        name: string;
+    } | null;
 }
 
 export default function UsersPage() {
@@ -48,10 +58,11 @@ export default function UsersPage() {
     const [formLoading, setFormLoading] = useState(false);
 
     // Delete State
-    const [deleteId, setDeleteId] = useState<number | null>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<User | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
-    // Fetch users from API
-    const fetchUsers = async () => {
+    const fetchData = async () => {
         setLoading(true);
         try {
             const response = await api.get("/admin/users", {
@@ -60,7 +71,7 @@ export default function UsersPage() {
             // Laravel pagination returns { data: [...] }
             setUsers(response.data.data);
         } catch (error) {
-            console.error("Failed to fetch users", error);
+            console.error("Failed to fetch data", error);
         } finally {
             setLoading(false);
         }
@@ -69,7 +80,7 @@ export default function UsersPage() {
     // Re-fetch when search changes, with a small debounce
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
-            fetchUsers();
+            fetchData();
         }, 500);
         return () => clearTimeout(delayDebounceFn);
     }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -113,43 +124,55 @@ export default function UsersPage() {
         }
 
         try {
+            const payload: any = {
+                name: formData.name,
+                email: formData.email,
+                role: formData.role,
+            };
+            if (formData.password) {
+                payload.password = formData.password;
+            }
+
             if (modalMode === "create") {
-                await api.post("/admin/users", {
-                    name: formData.name,
-                    email: formData.email,
-                    password: formData.password,
-                    role: formData.role,
-                });
+                await api.post("/admin/users", payload);
             } else if (modalMode === "edit" && selectedUser) {
-                await api.put(`/admin/users/${selectedUser.id}`, {
-                    name: formData.name,
-                    email: formData.email,
-                    ...(formData.password ? { password: formData.password } : {}),
-                    role: formData.role,
-                });
+                await api.put(`/admin/users/${selectedUser.id}`, payload);
             }
             setIsModalOpen(false);
-            fetchUsers(); // Refresh list
+            fetchData(); // Refresh list
+            toast.success(`User ${modalMode === "create" ? "created" : "updated"} successfully.`);
         } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } } };
-            setFormError(error.response?.data?.message || "An error occurred.");
+            const errorMsg = error.response?.data?.message || "An error occurred.";
+            setFormError(errorMsg);
+            toast.error(errorMsg);
         } finally {
             setFormLoading(false);
         }
     };
 
-    // Handle Delete User
-    const handleDelete = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this user?")) return;
+    // Open Delete Modal
+    const openDeleteModal = (user: User) => {
+        setUserToDelete(user);
+        setIsDeleteModalOpen(true);
+    };
 
+    // Handle Delete User Confirm
+    const handleDeleteConfirm = async () => {
+        if (!userToDelete) return;
+
+        setDeleteLoading(true);
         try {
-            await api.delete(`/admin/users/${id}`);
-            fetchUsers(); // Refresh list
+            await api.delete(`/admin/users/${userToDelete.id}`);
+            setIsDeleteModalOpen(false);
+            setUserToDelete(null);
+            fetchData(); // Refresh list
+            toast.success("User deleted successfully.");
         } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } } };
-            alert(error.response?.data?.message || "Failed to delete user.");
+            toast.error(error.response?.data?.message || "Failed to delete user.");
         } finally {
-            setDeleteId(null);
+            setDeleteLoading(false);
         }
     };
 
@@ -236,7 +259,9 @@ export default function UsersPage() {
                                             </td>
                                             <td className="p-4 align-middle">
                                                 <span
-                                                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${user.role === "admin"
+                                                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${user.role === "superadmin"
+                                                        ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
+                                                        : user.role === "admin"
                                                             ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
                                                             : user.role === "parent"
                                                                 ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
@@ -261,17 +286,9 @@ export default function UsersPage() {
                                                         variant="outline"
                                                         size="icon"
                                                         className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                                        onClick={() => {
-                                                            setDeleteId(user.id);
-                                                            handleDelete(user.id);
-                                                        }}
-                                                        disabled={deleteId === user.id}
+                                                        onClick={() => openDeleteModal(user)}
                                                     >
-                                                        {deleteId === user.id ? (
-                                                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                                                        ) : (
-                                                            <Trash2 className="h-4 w-4" />
-                                                        )}
+                                                        <Trash2 className="h-4 w-4" />
                                                         <span className="sr-only">Delete</span>
                                                     </Button>
                                                 </div>
@@ -351,6 +368,7 @@ export default function UsersPage() {
                                     </select>
                                 </div>
 
+
                                 <div className="space-y-2">
                                     <Label htmlFor="password">
                                         Password{" "}
@@ -420,6 +438,24 @@ export default function UsersPage() {
                     </Card>
                 </div>
             )}
+
+            {/* Delete Confirmation Modal */}
+            <DeleteModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setUserToDelete(null);
+                }}
+                onConfirm={handleDeleteConfirm}
+                title="Confirm Deletion"
+                description={
+                    <>
+                        Are you sure you want to delete the user <strong>{userToDelete?.name}</strong>? This action cannot be undone.
+                    </>
+                }
+                isLoading={deleteLoading}
+                confirmText="Delete User"
+            />
         </div>
     );
 }

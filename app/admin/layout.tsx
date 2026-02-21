@@ -17,6 +17,10 @@ interface UserData {
     name: string;
     email: string;
     role: string;
+    university?: {
+        id: number;
+        name: string;
+    };
 }
 
 export default function AdminLayout({
