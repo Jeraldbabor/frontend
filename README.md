@@ -16,7 +16,7 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-for admin portal [http://localhost:3000/potal-campuseye3x101]  the account is [superadmin@campuseye.com] and the password is [Rald@23]
+for admin portal [http://localhost:3000/portal-campuseye3x101]  the account is [superadmin@campuseye.com] and the password is [Rald@23]
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

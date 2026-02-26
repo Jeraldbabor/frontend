@@ -14,6 +14,9 @@ import {
     X,
     ShieldCheck,
     ChevronsUpDown,
+    GraduationCap,
+    BookOpen,
+    ClipboardList,
 } from "lucide-react";
 
 /**
@@ -32,7 +35,7 @@ interface UserData {
     name: string;
     email: string;
     role: string;
-    university?: {
+    school?: {
         id: number;
         name: string;
     };
@@ -76,6 +79,21 @@ export default function Sidebar({ user }: SidebarProps) {
             icon: <LayoutDashboard className="h-5 w-5" />,
         },
         {
+            label: "Students",
+            href: "/admin/students",
+            icon: <GraduationCap className="h-5 w-5" />,
+        },
+        {
+            label: "Teachers",
+            href: "/admin/teachers",
+            icon: <BookOpen className="h-5 w-5" />,
+        },
+        {
+            label: "Attendance",
+            href: "/admin/attendance",
+            icon: <ClipboardList className="h-5 w-5" />,
+        },
+        {
             label: "Users",
             href: "/admin/users",
             icon: <Users className="h-5 w-5" />,
@@ -95,7 +113,7 @@ export default function Sidebar({ user }: SidebarProps) {
         } finally {
             localStorage.removeItem("token");
             document.cookie = "token=; path=/; max-age=0";
-            router.push("/potal-campuseye3x101");
+            router.push("/portal-campuseye3x101");
         }
     };
 

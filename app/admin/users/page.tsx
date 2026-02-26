@@ -27,10 +27,10 @@ interface User {
     id: number;
     name: string;
     email: string;
-    role: "superadmin" | "admin" | "parent" | "student";
+    role: "superadmin" | "admin" | "teacher" | "principal" | "parent" | "student";
     created_at: string;
-    university_id?: number | null;
-    university?: {
+    school_id?: number | null;
+    school?: {
         id: number;
         name: string;
     } | null;
@@ -263,9 +263,13 @@ export default function UsersPage() {
                                                         ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
                                                         : user.role === "admin"
                                                             ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                                                            : user.role === "parent"
-                                                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                                                                : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                                            : user.role === "teacher"
+                                                                ? "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400"
+                                                                : user.role === "principal"
+                                                                    ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                                                                    : user.role === "parent"
+                                                                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                                                                        : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                                                         }`}
                                                 >
                                                     {user.role}
@@ -364,6 +368,8 @@ export default function UsersPage() {
                                     >
                                         <option value="student">Student</option>
                                         <option value="parent">Parent</option>
+                                        <option value="teacher">Teacher</option>
+                                        <option value="principal">Principal</option>
                                         <option value="admin">Administrator</option>
                                     </select>
                                 </div>

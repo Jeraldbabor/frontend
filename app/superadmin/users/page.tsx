@@ -29,8 +29,8 @@ interface User {
     email: string;
     role: "superadmin" | "admin" | "parent" | "student";
     created_at: string;
-    university_id?: number | null;
-    university?: {
+    school_id?: number | null;
+    school?: {
         id: number;
         name: string;
     } | null;
@@ -43,7 +43,7 @@ export default function UsersPage() {
 
     // Superadmin data
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [universities, setUniversities] = useState<{ id: number, name: string }[]>([]);
+    const [schools, setSchools] = useState<{ id: number, name: string }[]>([]);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,7 +57,7 @@ export default function UsersPage() {
         password: "",
         password_confirmation: "",
         role: "student",
-        university_id: "",
+        school_id: "",
     });
     const [formError, setFormError] = useState("");
     const [formLoading, setFormLoading] = useState(false);
@@ -72,9 +72,9 @@ export default function UsersPage() {
         setLoading(true);
         try {
             if (!currentUser) {
-                // We know it is a superadmin layout, but we still need the list of universities
-                const uniRes = await api.get("/superadmin/universities");
-                setUniversities(uniRes.data);
+                // We know it is a superadmin layout, but we still need the list of schools
+                const uniRes = await api.get("/superadmin/schools");
+                setSchools(uniRes.data);
 
                 // Keep dummy auth locally just for UI consistency down below without rewriting too much
                 setCurrentUser({ id: 0, name: "", email: "", role: "superadmin", created_at: new Date().toISOString() });
@@ -112,7 +112,7 @@ export default function UsersPage() {
                 password: "", // Leave blank unless changing
                 password_confirmation: "",
                 role: user.role,
-                university_id: user.university_id ? user.university_id.toString() : "",
+                school_id: user.school_id ? user.school_id.toString() : "",
             });
         } else {
             setSelectedUser(null);
@@ -122,7 +122,7 @@ export default function UsersPage() {
                 password: "",
                 password_confirmation: "",
                 role: "student",
-                university_id: "",
+                school_id: "",
             });
         }
         setIsModalOpen(true);
@@ -149,8 +149,8 @@ export default function UsersPage() {
             if (formData.password) {
                 payload.password = formData.password;
             }
-            if (currentUser?.role === "superadmin" && formData.university_id) {
-                payload.university_id = formData.university_id;
+            if (currentUser?.role === "superadmin" && formData.school_id) {
+                payload.school_id = formData.school_id;
             }
 
             if (modalMode === "create") {
@@ -248,7 +248,7 @@ export default function UsersPage() {
                                     </th>
                                     {currentUser?.role === "superadmin" && (
                                         <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
-                                            University
+                                            School
                                         </th>
                                     )}
                                     <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 text-right">
@@ -298,7 +298,7 @@ export default function UsersPage() {
                                             </td>
                                             {currentUser?.role === "superadmin" && (
                                                 <td className="p-4 align-middle">
-                                                    {user.university ? user.university.name : (
+                                                    {user.school ? user.school.name : (
                                                         <span className="text-muted-foreground italic">None</span>
                                                     )}
                                                 </td>
@@ -405,17 +405,17 @@ export default function UsersPage() {
 
                                 {currentUser?.role === "superadmin" && (
                                     <div className="space-y-2">
-                                        <Label htmlFor="university_id">University</Label>
+                                        <Label htmlFor="school_id">School</Label>
                                         <select
-                                            id="university_id"
+                                            id="school_id"
                                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                            value={formData.university_id}
+                                            value={formData.school_id}
                                             onChange={(e) =>
-                                                setFormData({ ...formData, university_id: e.target.value })
+                                                setFormData({ ...formData, school_id: e.target.value })
                                             }
                                         >
-                                            <option value="">No University (Global)</option>
-                                            {universities.map(u => (
+                                            <option value="">No School (Global)</option>
+                                            {schools.map(u => (
                                                 <option key={u.id} value={u.id}>{u.name}</option>
                                             ))}
                                         </select>

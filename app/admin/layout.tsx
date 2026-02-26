@@ -17,7 +17,7 @@ interface UserData {
     name: string;
     email: string;
     role: string;
-    university?: {
+    school?: {
         id: number;
         name: string;
     };
@@ -42,7 +42,7 @@ export default function AdminLayout({
                 // If token is invalid, clear and redirect to login
                 localStorage.removeItem("token");
                 document.cookie = "token=; path=/; max-age=0";
-                router.push("/potal-campuseye3x101");
+                router.push("/portal-campuseye3x101");
             } finally {
                 setLoading(false);
             }
