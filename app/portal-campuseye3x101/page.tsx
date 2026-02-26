@@ -94,17 +94,21 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden relative p-4">
+            {/* Background glowing orbs */}
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/20 blur-[120px]" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/20 blur-[120px]" />
+
             {/* Login Card */}
-            <Card className="w-full max-w-md">
-                <CardHeader className="text-center space-y-2">
+            <Card className="w-full max-w-md bg-white/5 border-white/10 backdrop-blur-xl shadow-2xl relative z-10 sm:p-4">
+                <CardHeader className="text-center space-y-3 pb-6">
                     {/* Logo / Icon */}
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-                        <ShieldCheck className="h-8 w-8 text-primary" />
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/20 shadow-inner ring-1 ring-white/10">
+                        <ShieldCheck className="h-8 w-8 text-primary shadow-sm" />
                     </div>
-                    <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
-                    <CardDescription>
-                        Sign in to the CampusEye Gate System
+                    <CardTitle className="text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">Admin Portal</CardTitle>
+                    <CardDescription className="text-slate-400 font-medium tracking-wide">
+                        Sign in to CampusEye Gate System
                     </CardDescription>
                 </CardHeader>
 
@@ -158,16 +162,20 @@ export default function LoginPage() {
                         </div>
 
                         {/* Submit button */}
-                        <Button type="submit" className="w-full" disabled={loading}>
+                        <Button
+                            type="submit"
+                            className="w-full h-12 text-md font-semibold mt-4 shadow-lg shadow-primary/30 transition-all hover:scale-[1.02]"
+                            disabled={loading}
+                        >
                             {loading ? (
                                 <span className="flex items-center gap-2">
-                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                                    Signing in...
+                                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                    Authenticating...
                                 </span>
                             ) : (
                                 <span className="flex items-center gap-2">
-                                    <LogIn className="h-4 w-4" />
-                                    Sign In
+                                    <LogIn className="h-5 w-5" />
+                                    Secure Sign In
                                 </span>
                             )}
                         </Button>

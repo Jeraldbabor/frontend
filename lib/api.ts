@@ -35,7 +35,7 @@ api.interceptors.response.use(
             // Clear stored token and redirect to login
             if (typeof window !== "undefined") {
                 localStorage.removeItem("token");
-                window.location.href = "/potal-campuseye3x101";
+                window.location.href = "/portal-campuseye3x101";
             }
         }
         return Promise.reject(error);

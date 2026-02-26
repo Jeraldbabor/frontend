@@ -92,7 +92,7 @@ export default function SettingsPage() {
             // Clear auth and redirect to login
             localStorage.removeItem("token");
             document.cookie = "token=; path=/; max-age=0";
-            router.push("/potal-campuseye3x101");
+            router.push("/portal-campuseye3x101");
         } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } } };
             setDeleteError(

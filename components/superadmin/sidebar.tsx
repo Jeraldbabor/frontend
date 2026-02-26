@@ -33,7 +33,7 @@ interface UserData {
     name: string;
     email: string;
     role: string;
-    university?: {
+    school?: {
         id: number;
         name: string;
     };
@@ -77,8 +77,8 @@ export default function Sidebar({ user }: SidebarProps) {
             icon: <LayoutDashboard className="h-5 w-5" />,
         },
         {
-            label: "Universities",
-            href: "/superadmin/universities",
+            label: "Schools",
+            href: "/superadmin/schools",
             icon: <Building className="h-5 w-5" />,
         },
         {
@@ -101,7 +101,7 @@ export default function Sidebar({ user }: SidebarProps) {
         } finally {
             localStorage.removeItem("token");
             document.cookie = "token=; path=/; max-age=0";
-            router.push("/potal-campuseye3x101");
+            router.push("/portal-campuseye3x101");
         }
     };
 
