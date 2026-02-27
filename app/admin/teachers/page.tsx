@@ -8,6 +8,7 @@ import { DeleteModal } from "@/components/admin/delete-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface TeacherAssignment {
@@ -305,24 +306,29 @@ export default function TeachersPage() {
 
             {/* Create/Edit Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <Card className="w-full max-w-md shadow-lg animate-in zoom-in-95 duration-200">
-                        <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
-                            <CardTitle>
-                                {modalMode === "create"
-                                    ? "Assign Teacher"
-                                    : "Edit Assignment"}
-                            </CardTitle>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <Card className="w-full max-w-lg shadow-2xl border-0 animate-in zoom-in-95 duration-200 overflow-hidden">
+                        <CardHeader className="flex flex-row items-center justify-between border-b pb-4 bg-muted/30">
+                            <div>
+                                <CardTitle className="text-xl">
+                                    {modalMode === "create"
+                                        ? "Assign Teacher"
+                                        : "Edit Teacher Details"}
+                                </CardTitle>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    {modalMode === "create" ? "Assign a user to a specific class/section grade." : "Update the assignment details below."}
+                                </p>
+                            </div>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors"
                                 onClick={() => setIsModalOpen(false)}
                             >
                                 <X className="h-4 w-4" />
                             </Button>
                         </CardHeader>
-                        <CardContent className="pt-6">
+                        <CardContent className="pt-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
                             <form
                                 onSubmit={handleSubmit}
                                 className="space-y-4"
@@ -334,37 +340,26 @@ export default function TeachersPage() {
                                 )}
 
                                 {modalMode === "create" && (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="user_id">Teacher</Label>
-                                        <select
-                                            id="user_id"
-                                            className={selectClass}
+                                    <div className="space-y-2 relative z-50">
+                                        <Label htmlFor="user_id">Teacher Account</Label>
+                                        <SearchableSelect
+                                            options={[
+                                                { label: "Select a teacher...", value: "" },
+                                                ...teacherUsers.map((user) => ({
+                                                    label: `${user.name} (${user.email})`,
+                                                    value: user.id.toString(),
+                                                })),
+                                            ]}
                                             value={formData.user_id}
-                                            onChange={(e) =>
-                                                setFormData({
-                                                    ...formData,
-                                                    user_id: e.target.value,
-                                                })
-                                            }
-                                            required
-                                        >
-                                            <option value="">
-                                                Select a teacher...
-                                            </option>
-                                            {teacherUsers.map((user) => (
-                                                <option
-                                                    key={user.id}
-                                                    value={user.id}
-                                                >
-                                                    {user.name} ({user.email})
-                                                </option>
-                                            ))}
-                                        </select>
+                                            onChange={(val) => setFormData({ ...formData, user_id: val })}
+                                            placeholder="Search for a teacher..."
+                                            searchPlaceholder="Search teacher name or email..."
+                                        />
                                         {teacherUsers.length === 0 && (
-                                            <p className="text-xs text-muted-foreground">
-                                                No users with &quot;teacher&quot; role
-                                                found. Create a user with the
-                                                teacher role first.
+                                            <p className="text-xs text-muted-foreground mt-1.5">
+                                                No users with the &quot;teacher&quot; role
+                                                were found. Create a user with the
+                                                teacher role first to assign them.
                                             </p>
                                         )}
                                     </div>

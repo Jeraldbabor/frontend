@@ -10,12 +10,14 @@ import {
     Search,
     X,
     CreditCard,
+    UserCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DeleteModal } from "@/components/admin/delete-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Student {
@@ -27,6 +29,7 @@ interface Student {
     rfid_code: string | null;
     student_id_number: string;
     parent_id: number | null;
+    profile_image_url?: string | null;
     parent?: { id: number; name: string; email: string } | null;
     created_at: string;
 }
@@ -60,7 +63,16 @@ export default function StudentsPage() {
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
     // Form State
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        first_name: string;
+        last_name: string;
+        grade: string;
+        section: string;
+        student_id_number: string;
+        rfid_code: string;
+        parent_id: string;
+        profile_image: File | null;
+    }>({
         first_name: "",
         last_name: "",
         grade: "",
@@ -68,7 +80,9 @@ export default function StudentsPage() {
         student_id_number: "",
         rfid_code: "",
         parent_id: "",
+        profile_image: null,
     });
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [formError, setFormError] = useState("");
     const [formLoading, setFormLoading] = useState(false);
 
@@ -135,7 +149,9 @@ export default function StudentsPage() {
                 student_id_number: student.student_id_number,
                 rfid_code: student.rfid_code || "",
                 parent_id: student.parent_id?.toString() || "",
+                profile_image: null,
             });
+            setImagePreview(student.profile_image_url || null);
         } else {
             setSelectedStudent(null);
             setFormData({
@@ -146,7 +162,9 @@ export default function StudentsPage() {
                 student_id_number: "",
                 rfid_code: "",
                 parent_id: "",
+                profile_image: null,
             });
+            setImagePreview(null);
         }
         setIsModalOpen(true);
     };
@@ -157,20 +175,28 @@ export default function StudentsPage() {
         setFormLoading(true);
 
         try {
-            const payload: Record<string, string | null> = {
-                first_name: formData.first_name,
-                last_name: formData.last_name,
-                grade: formData.grade,
-                section: formData.section,
-                student_id_number: formData.student_id_number,
-                rfid_code: formData.rfid_code || null,
-                parent_id: formData.parent_id || null,
-            };
+            const payload = new FormData();
+            payload.append("first_name", formData.first_name);
+            payload.append("last_name", formData.last_name);
+            payload.append("grade", formData.grade);
+            payload.append("section", formData.section);
+            payload.append("student_id_number", formData.student_id_number);
+            if (formData.rfid_code) payload.append("rfid_code", formData.rfid_code);
+            if (formData.parent_id) payload.append("parent_id", formData.parent_id);
+            if (formData.profile_image) payload.append("profile_image", formData.profile_image);
 
             if (modalMode === "create") {
-                await api.post("/admin/students", payload);
+                await api.post("/admin/students", payload, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
             } else if (selectedStudent) {
-                await api.put(`/admin/students/${selectedStudent.id}`, payload);
+                payload.append("_method", "PUT");
+                await api.post(`/admin/students/${selectedStudent.id}`, payload, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+            }
+            if (imagePreview && !imagePreview.startsWith('http')) {
+                URL.revokeObjectURL(imagePreview);
             }
             setIsModalOpen(false);
             fetchStudents();
@@ -187,6 +213,9 @@ export default function StudentsPage() {
             toast.error(errorMsg);
         } finally {
             setFormLoading(false);
+            if (imagePreview && !imagePreview.startsWith('http')) {
+                URL.revokeObjectURL(imagePreview);
+            }
         }
     };
 
@@ -331,8 +360,15 @@ export default function StudentsPage() {
                                                 {student.student_id_number}
                                             </td>
                                             <td className="p-4 align-middle font-medium">
-                                                {student.first_name}{" "}
-                                                {student.last_name}
+                                                <div className="flex items-center gap-3">
+                                                    {student.profile_image_url ? (
+                                                        <img src={student.profile_image_url} alt="Profile" className="h-8 w-8 rounded-full object-cover" />
+                                                    ) : (
+                                                        <UserCircle className="h-8 w-8 text-muted-foreground" />
+                                                    )}
+                                                    {student.first_name}{" "}
+                                                    {student.last_name}
+                                                </div>
                                             </td>
                                             <td className="p-4 align-middle">
                                                 <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
@@ -401,24 +437,34 @@ export default function StudentsPage() {
 
             {/* Create/Edit Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <Card className="w-full max-w-lg shadow-lg animate-in zoom-in-95 duration-200">
-                        <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
-                            <CardTitle>
-                                {modalMode === "create"
-                                    ? "Add New Student"
-                                    : "Edit Student"}
-                            </CardTitle>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <Card className="w-full max-w-xl shadow-2xl border-0 animate-in zoom-in-95 duration-200 overflow-hidden">
+                        <CardHeader className="flex flex-row items-center justify-between border-b pb-4 bg-muted/30">
+                            <div>
+                                <CardTitle className="text-xl">
+                                    {modalMode === "create"
+                                        ? "Add New Student"
+                                        : "Edit Student Details"}
+                                </CardTitle>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    {modalMode === "create" ? "Enter the details for the new student entry." : "Update the information and class assignments below."}
+                                </p>
+                            </div>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
-                                onClick={() => setIsModalOpen(false)}
+                                className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0"
+                                onClick={() => {
+                                    if (imagePreview && !imagePreview.startsWith('http')) {
+                                        URL.revokeObjectURL(imagePreview);
+                                    }
+                                    setIsModalOpen(false);
+                                }}
                             >
                                 <X className="h-4 w-4" />
                             </Button>
                         </CardHeader>
-                        <CardContent className="pt-6">
+                        <CardContent className="pt-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
                             <form
                                 onSubmit={handleSubmit}
                                 className="space-y-4"
@@ -482,14 +528,22 @@ export default function StudentsPage() {
                                     />
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-2 relative z-50">
                                     <Label>Assign Teacher / Class (Optional)</Label>
-                                    <select
-                                        className={selectClass}
-                                        onChange={(e) => {
-                                            const teacherId = e.target.value;
+                                    <SearchableSelect
+                                        options={[
+                                            { label: "None / Clear Selection", value: "" },
+                                            ...teachers.map((teacher) => ({
+                                                label: `${teacher.user?.name} — Grade ${teacher.grade} / ${teacher.section}`,
+                                                value: teacher.id.toString(),
+                                            })),
+                                        ]}
+                                        value={""} // We don't necessarily need to bind value strictly here since it auto-fills grade/section, but could bind to a dummy state if needed.
+                                        onChange={(teacherId) => {
                                             if (teacherId) {
-                                                const teacher = teachers.find(t => t.id.toString() === teacherId);
+                                                const teacher = teachers.find(
+                                                    (t) => t.id.toString() === teacherId
+                                                );
                                                 if (teacher) {
                                                     setFormData({
                                                         ...formData,
@@ -499,20 +553,13 @@ export default function StudentsPage() {
                                                 }
                                             }
                                         }}
-                                    >
-                                        <option value="">
-                                            Select to auto-fill Grade & Section...
-                                        </option>
-                                        {teachers.map((teacher) => (
-                                            <option key={teacher.id} value={teacher.id}>
-                                                {teacher.user?.name} — Grade {teacher.grade} / {teacher.section}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <p className="text-xs text-muted-foreground">Select a teacher to automatically fill the Grade and Section below.</p>
+                                        placeholder="Search for a teacher to auto-fill Grade & Section..."
+                                        searchPlaceholder="Search teacher name..."
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1.5">Search and select a teacher to automatically fill the Grade and Section fields below.</p>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 gap-4 relative" style={{ zIndex: 45 }}>
                                     <div className="space-y-2">
                                         <Label htmlFor="grade">Grade</Label>
                                         <Input
@@ -569,39 +616,68 @@ export default function StudentsPage() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-2 relative z-40">
                                     <Label htmlFor="parent_id">
                                         Parent Account{" "}
                                         <span className="text-muted-foreground font-normal">
                                             (Optional)
                                         </span>
                                     </Label>
-                                    <select
-                                        id="parent_id"
-                                        className={selectClass}
-                                        value={formData.parent_id}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                parent_id: e.target.value,
-                                            })
-                                        }
-                                    >
-                                        <option value="">
-                                            No parent linked
-                                        </option>
-                                        {parents.map((parent) => (
-                                            <option
-                                                key={parent.id}
-                                                value={parent.id}
-                                            >
-                                                {parent.name} ({parent.email})
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <SearchableSelect
+                                        options={[
+                                            { label: "No Parent Linked", value: "" },
+                                            ...parents.map((parent) => ({
+                                                label: `${parent.name} (${parent.email})`,
+                                                value: parent.id.toString(),
+                                            })),
+                                        ]}
+                                        value={formData.parent_id || ""}
+                                        onChange={(val) => setFormData({ ...formData, parent_id: val })}
+                                        placeholder="Search for a parent..."
+                                        searchPlaceholder="Search name or email..."
+                                    />
                                 </div>
 
-                                <div className="flex justify-end gap-3 pt-4">
+                                <div className="space-y-3 pt-2 h-max">
+                                    <Label htmlFor="profile_image">Profile Image (Optional)</Label>
+
+                                    <div className="flex items-start gap-4 flex-col sm:flex-row sm:items-center">
+                                        <div className="h-16 w-16 shrink-0 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border">
+                                            {imagePreview ? (
+                                                <img src={imagePreview} alt="Preview" className="h-full w-full object-cover" />
+                                            ) : (
+                                                <UserCircle className="h-8 w-8 text-muted-foreground opacity-50" />
+                                            )}
+                                        </div>
+                                        <div className="flex-1 w-full relative">
+                                            <Input
+                                                id="profile_image"
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/jpg"
+                                                className="cursor-pointer file:cursor-pointer file:text-primary file:font-medium"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0] || null;
+                                                    setFormData({ ...formData, profile_image: file });
+
+                                                    // Handle Image Preview
+                                                    if (file) {
+                                                        const objectUrl = URL.createObjectURL(file);
+                                                        setImagePreview(objectUrl);
+                                                    } else if (modalMode === "edit" && selectedStudent?.profile_image_url) {
+                                                        setImagePreview(selectedStudent.profile_image_url);
+                                                    } else {
+                                                        setImagePreview(null);
+                                                    }
+                                                }}
+                                            />
+                                            <p className="text-xs text-muted-foreground mt-1.5">
+                                                Accepted formats: JPEG, PNG, JPG. Max size: 2MB.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-4 border-t border-border/50 mt-6">
                                     <Button
                                         type="button"
                                         variant="outline"

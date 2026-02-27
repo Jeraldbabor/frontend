@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import api from "@/lib/api";
 
 // lucide-react icons
-import { Users, Plus, Pencil, Trash2, Search, X } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Search, X, UserCircle } from "lucide-react";
 
 // sonner for toast notifications
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import { DeleteModal } from "@/components/admin/delete-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
     Card,
     CardContent,
@@ -30,6 +31,7 @@ interface User {
     role: "superadmin" | "admin" | "parent" | "student";
     created_at: string;
     school_id?: number | null;
+    profile_image_url?: string | null;
     school?: {
         id: number;
         name: string;
@@ -51,14 +53,24 @@ export default function UsersPage() {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
     // Form State
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        name: string;
+        email: string;
+        password: string;
+        password_confirmation: string;
+        role: string;
+        school_id: string;
+        profile_image: File | null;
+    }>({
         name: "",
         email: "",
         password: "",
         password_confirmation: "",
         role: "student",
         school_id: "",
+        profile_image: null,
     });
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [formError, setFormError] = useState("");
     const [formLoading, setFormLoading] = useState(false);
 
@@ -113,7 +125,9 @@ export default function UsersPage() {
                 password_confirmation: "",
                 role: user.role,
                 school_id: user.school_id ? user.school_id.toString() : "",
+                profile_image: null,
             });
+            setImagePreview(user.profile_image_url || null);
         } else {
             setSelectedUser(null);
             setFormData({
@@ -123,7 +137,9 @@ export default function UsersPage() {
                 password_confirmation: "",
                 role: "student",
                 school_id: "",
+                profile_image: null,
             });
+            setImagePreview(null);
         }
         setIsModalOpen(true);
     };
@@ -141,22 +157,33 @@ export default function UsersPage() {
         }
 
         try {
-            const payload: Record<string, string> = {
-                name: formData.name,
-                email: formData.email,
-                role: formData.role,
-            };
+            const payload = new FormData();
+            payload.append("name", formData.name);
+            payload.append("email", formData.email);
+            payload.append("role", formData.role);
             if (formData.password) {
-                payload.password = formData.password;
+                payload.append("password", formData.password);
             }
             if (currentUser?.role === "superadmin" && formData.school_id) {
-                payload.school_id = formData.school_id;
+                payload.append("school_id", formData.school_id);
+            }
+            if (formData.profile_image) {
+                payload.append("profile_image", formData.profile_image);
             }
 
             if (modalMode === "create") {
-                await api.post("/superadmin/users", payload);
+                await api.post("/superadmin/users", payload, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
             } else if (modalMode === "edit" && selectedUser) {
-                await api.put(`/superadmin/users/${selectedUser.id}`, payload);
+                payload.append("_method", "PUT");
+                await api.post(`/superadmin/users/${selectedUser.id}`, payload, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+            }
+            if (imagePreview && !imagePreview.startsWith('http')) {
+                // Revoke object URL to avoid memory leaks if it was locally created
+                URL.revokeObjectURL(imagePreview);
             }
             setIsModalOpen(false);
             fetchData(); // Refresh list
@@ -166,6 +193,9 @@ export default function UsersPage() {
             const errorMsg = error.response?.data?.message || "An error occurred.";
             setFormError(errorMsg);
             toast.error(errorMsg);
+            if (imagePreview && !imagePreview.startsWith('http')) {
+                URL.revokeObjectURL(imagePreview);
+            }
         } finally {
             setFormLoading(false);
         }
@@ -278,7 +308,16 @@ export default function UsersPage() {
                                             key={user.id}
                                             className="border-b border-border transition-colors hover:bg-muted/50"
                                         >
-                                            <td className="p-4 align-middle font-medium">{user.name}</td>
+                                            <td className="p-4 align-middle font-medium">
+                                                <div className="flex items-center gap-3">
+                                                    {user.profile_image_url ? (
+                                                        <img src={user.profile_image_url} alt={user.name} className="h-8 w-8 rounded-full object-cover" />
+                                                    ) : (
+                                                        <UserCircle className="h-8 w-8 text-muted-foreground" />
+                                                    )}
+                                                    {user.name}
+                                                </div>
+                                            </td>
                                             <td className="p-4 align-middle text-muted-foreground">
                                                 {user.email}
                                             </td>
@@ -336,23 +375,33 @@ export default function UsersPage() {
 
             {/* Basic Custom Modal for Create/Edit */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <Card className="w-full max-w-md shadow-lg animate-in zoom-in-95 duration-200">
-                        <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
-                            <CardTitle>
-                                {modalMode === "create" ? "Add New User" : "Edit User"}
-                            </CardTitle>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <Card className="w-full max-w-xl shadow-2xl border-0 animate-in zoom-in-95 duration-200 overflow-hidden">
+                        <CardHeader className="flex flex-row items-center justify-between border-b pb-4 bg-muted/30">
+                            <div>
+                                <CardTitle className="text-xl">
+                                    {modalMode === "create" ? "Add New User" : "Edit User Details"}
+                                </CardTitle>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    {modalMode === "create" ? "Create a new user profile with a specific role." : "Update the user's information and system role."}
+                                </p>
+                            </div>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
-                                onClick={() => setIsModalOpen(false)}
+                                className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0"
+                                onClick={() => {
+                                    if (imagePreview && !imagePreview.startsWith('http')) {
+                                        URL.revokeObjectURL(imagePreview);
+                                    }
+                                    setIsModalOpen(false);
+                                }}
                             >
                                 <X className="h-4 w-4" />
                             </Button>
                         </CardHeader>
-                        <CardContent className="pt-6">
-                            <form onSubmit={handleSubmit} className="space-y-4">
+                        <CardContent className="pt-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                            <form onSubmit={handleSubmit} className="space-y-5">
                                 {formError && (
                                     <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                                         {formError}
@@ -384,45 +433,81 @@ export default function UsersPage() {
                                     />
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-2 relative" style={{ zIndex: 60 }}>
                                     <Label htmlFor="role">Role</Label>
-                                    <select
-                                        id="role"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    <SearchableSelect
+                                        options={[
+                                            { label: "Admin - Full Dashboard Access", value: "admin" },
+                                            { label: "Principal - Dashboard Analytics", value: "principal" },
+                                            { label: "Teacher - Specific Section Manager", value: "teacher" },
+                                            { label: "Parent - Mobile App Access", value: "parent" },
+                                            { label: "Student - Mobile App Access", value: "student" },
+                                            ...(currentUser?.role === "superadmin" ? [{ label: "Superadmin - System Operator", value: "superadmin" }] : [])
+                                        ]}
                                         value={formData.role}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, role: e.target.value })
-                                        }
-                                    >
-                                        <option value="student">Student</option>
-                                        <option value="parent">Parent</option>
-                                        <option value="admin">Administrator</option>
-                                        {currentUser?.role === "superadmin" && (
-                                            <option value="superadmin">Superadmin</option>
-                                        )}
-                                    </select>
+                                        onChange={(val) => setFormData({ ...formData, role: val })}
+                                        placeholder="Select a user role..."
+                                        searchPlaceholder="Search roles..."
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1.5">Roles determine what layout and functions the user can access.</p>
                                 </div>
 
                                 {currentUser?.role === "superadmin" && (
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 relative" style={{ zIndex: 50 }}>
                                         <Label htmlFor="school_id">School</Label>
-                                        <select
-                                            id="school_id"
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        <SearchableSelect
+                                            options={[
+                                                { label: "No School (Global)", value: "" },
+                                                ...schools.map(u => ({ label: u.name, value: u.id.toString() }))
+                                            ]}
                                             value={formData.school_id}
-                                            onChange={(e) =>
-                                                setFormData({ ...formData, school_id: e.target.value })
-                                            }
-                                        >
-                                            <option value="">No School (Global)</option>
-                                            {schools.map(u => (
-                                                <option key={u.id} value={u.id}>{u.name}</option>
-                                            ))}
-                                        </select>
+                                            onChange={(val) => setFormData({ ...formData, school_id: val })}
+                                            placeholder="Assign to a specific school..."
+                                            searchPlaceholder="Search schools..."
+                                        />
                                     </div>
                                 )}
 
-                                <div className="space-y-2">
+                                <div className="space-y-3 pt-2">
+                                    <Label htmlFor="profile_image">Profile Image (Optional)</Label>
+
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-16 w-16 shrink-0 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border">
+                                            {imagePreview ? (
+                                                <img src={imagePreview} alt="Preview" className="h-full w-full object-cover" />
+                                            ) : (
+                                                <UserCircle className="h-8 w-8 text-muted-foreground opacity-50" />
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <Input
+                                                id="profile_image"
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/jpg"
+                                                className="cursor-pointer file:cursor-pointer file:text-primary file:font-medium"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0] || null;
+                                                    setFormData({ ...formData, profile_image: file });
+
+                                                    // Handle Image Preview
+                                                    if (file) {
+                                                        const objectUrl = URL.createObjectURL(file);
+                                                        setImagePreview(objectUrl);
+                                                    } else if (modalMode === "edit" && selectedUser?.profile_image_url) {
+                                                        setImagePreview(selectedUser.profile_image_url);
+                                                    } else {
+                                                        setImagePreview(null);
+                                                    }
+                                                }}
+                                            />
+                                            <p className="text-xs text-muted-foreground mt-1.5">
+                                                Accepted formats: JPEG, PNG, JPG. Max size: 2MB.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 pt-2">
                                     <Label htmlFor="password">
                                         Password{" "}
                                         {modalMode === "edit" && (
@@ -465,11 +550,16 @@ export default function UsersPage() {
                                     </div>
                                 )}
 
-                                <div className="flex justify-end gap-3 pt-4">
+                                <div className="flex justify-end gap-3 pt-4 border-t mt-6 border-border/50">
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        onClick={() => setIsModalOpen(false)}
+                                        onClick={() => {
+                                            if (imagePreview && !imagePreview.startsWith('http')) {
+                                                URL.revokeObjectURL(imagePreview);
+                                            }
+                                            setIsModalOpen(false);
+                                        }}
                                     >
                                         Cancel
                                     </Button>
